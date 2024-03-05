@@ -9,7 +9,22 @@
 # youtube_downloader
 A GUI made with Tkinter, that allows the user to download YouTube videos, even age restricted ones.
 
-# To Do
+# How to install:
+1. download the python skript and the requirements.txt file
+2. install python from: https://www.python.org/
+3. In the folder where the requirements.txt file is located, open a terminal and install the dependencies with:
+```bash
+pip install -r requirements.txt
+```
+4. Download and install ffmpeg from: https://ffmpeg.org/download.html
+5. If not already done, add ffmpeg to PATH
+6. In the folder where the python skript is located, open a terminal and start the app with:
+```bash
+python youtube_downloader.py
+```
+
+
+# ToDo
 Features to add:
 - get links from textfile
 - download playlist all at once
@@ -19,6 +34,7 @@ Features to add:
 - add other formats than mp4 and mp3
 - allow user to choose resolution
 - show debug messages to a textbox in the gui (also because multithreading spams the console)  ✓
+- check Linux compatibility
 
 To fix:
 - with the ANDROID_CREATOR client, in some cases, there is no 1080p stream, even though there should be one,

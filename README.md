@@ -12,6 +12,7 @@ A GUI made with Tkinter, that allows the user to download YouTube videos, even a
 ## Pictures
 <div align="center">
   <p>
-    <a href="<a href="https://github.com/mr-s8/youtube_downloader/blob/main/images/youtube_downloader_gui.png" width="800" alt="pytube logo" /></a>" width="800" alt="pytube logo" /></a>
+    <a href="https://github.com/mr-s8/youtube_downloader/blob/main/images/youtube_downloader_gui.png" width="800" alt="pytube logo" /></a>
+    <a href="https://github.com/mr-s8/youtube_downloader/blob/main/images/youtube_downloader_gui_tested.png" width="800" alt="pytube logo" /></a>
   </p>
 </div>

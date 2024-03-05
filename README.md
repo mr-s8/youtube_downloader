@@ -34,6 +34,7 @@ python youtube_downloader.py
 - allow user to choose resolution
 - show debug messages to a textbox in the gui (also because multithreading spams the console)  ✓
 - check Linux compatibility
+- if audio is downloaded only to merge it with the video, dont show a green message on the debug screen (so that green messages only indicate when something is entirely done)
 - FIX BUG: with the ANDROID_CREATOR client, in some cases, there is no 1080p stream, even though there should be one,
     using the ADROID client could fix this, it fixes a loop bug with age restricted videos, but leads to 403 errors
     very often; how can I eliminate all these bugs?

@@ -41,7 +41,7 @@ To fix:
     using the ADROID client could fix this, it fixes a loop bug with age restricted videos, but leads to 403 errors
     very often; how can I eliminate all these bugs?
 
-## GUI
+## Pictures
 <div align="center">
   <p>
     <a href="https://github.com/mr-s8/youtube_downloader/blob/main/images/youtube_downloader_gui_tested.png"><img src="https://github.com/mr-s8/youtube_downloader/blob/main/images/youtube_downloader_gui_tested.png"       

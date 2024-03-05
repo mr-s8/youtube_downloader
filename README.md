@@ -25,7 +25,6 @@ python youtube_downloader.py
 
 
 # ToDo
-Features to add:
 - get links from textfile
 - download playlist all at once
 - use multithreading (one thread for gui and one for each download)                             ✓
@@ -35,9 +34,7 @@ Features to add:
 - allow user to choose resolution
 - show debug messages to a textbox in the gui (also because multithreading spams the console)  ✓
 - check Linux compatibility
-
-To fix:
-- with the ANDROID_CREATOR client, in some cases, there is no 1080p stream, even though there should be one,
+- FIX BUG: with the ANDROID_CREATOR client, in some cases, there is no 1080p stream, even though there should be one,
     using the ADROID client could fix this, it fixes a loop bug with age restricted videos, but leads to 403 errors
     very often; how can I eliminate all these bugs?
 

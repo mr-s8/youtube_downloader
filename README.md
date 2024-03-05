@@ -10,7 +10,7 @@
 A GUI made with Tkinter, that allows the user to download YouTube videos, even age restricted ones.
 
 # How to install:
-1. download the python skript and the requirements.txt file
+1. download the python script and the requirements.txt file
 2. if not done, install python from: https://www.python.org/
 3. In the folder where the requirements.txt file is located, open a terminal and install the dependencies with:
 ```bash

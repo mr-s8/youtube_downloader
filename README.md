@@ -26,7 +26,8 @@ python youtube_downloader.py
 
 # ToDo
 - get links from textfile
-- download playlist all at once
+- add button to toggle Video/Audio for videos already added to the list                         ✓
+- download playlist all at once                                                                 ✓
 - use multithreading (one thread for gui and one for each download)                             ✓
 - show thumbnail when adding video
 - show progressbar

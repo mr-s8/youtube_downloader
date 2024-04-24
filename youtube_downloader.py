@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import time
 from pytube import YouTube
+from pytube import Playlist
 from pytube.innertube import _default_clients
 import threading
 
@@ -68,6 +69,14 @@ class YouTubeDownloaderApp(ctk.CTk):
         delete_all_button = ctk.CTkButton(frame3, text="Delete All", command=self.delete_all)
         delete_all_button.pack(side=tk.TOP, pady=5)
 
+        toggle_audio_video_button = ctk.CTkButton(frame3, text="Toggle Audio/Video", command=self.toggle_video_audio)
+        toggle_audio_video_button.pack(side=tk.TOP, pady=5)
+
+        # Toggle playlist mode
+        self.playlist_mode = ctk.IntVar(value= 0)
+        playlist_mode_swith = (ctk.CTkSwitch(master= frame3, text= "Playlist Mode", variable=self.playlist_mode, onvalue=1, offvalue=0))
+        playlist_mode_swith.pack(side=tk.BOTTOM)
+
         # Download all button
         dl_button = ctk.CTkButton(master = self, text="Download all", command= lambda: threading.Thread(target= self.download_all).start())    # run download_all function in a different thread, 
         dl_button.pack(pady = 10)                                                                                                                   #so the gui doesnt freeze when we wait for the downloads to finish
@@ -97,6 +106,25 @@ class YouTubeDownloaderApp(ctk.CTk):
         self.listb.delete(0, tk.END)
         yt_videos = []  
 
+    def toggle_video_audio(self):
+        selected_index = self.listb.curselection()
+        if not selected_index:
+            return
+        selected_index = selected_index[0]
+        yt_tuple = yt_videos[selected_index]
+        listb_text = self.listb.get(selected_index)
+        if yt_tuple[1] == 0:  # Video mode detected
+            yt_videos[selected_index] = (yt_tuple[0],1)
+            listb_text = listb_text[:-6] + "Audio)"
+            self.listb.delete(selected_index)
+            self.listb.insert(selected_index, listb_text)
+        else:                 #Audio mode detected
+            yt_videos[selected_index] = (yt_tuple[0],0)
+            listb_text = listb_text[:-6] + "Video)"
+            self.listb.delete(selected_index)
+            self.listb.insert(selected_index, listb_text)
+            
+
     def add_item(self):
         """
         adds an the youtube video from the entry to the listbox,
@@ -105,10 +133,22 @@ class YouTubeDownloaderApp(ctk.CTk):
         item = self.link_entry.get()
         mode = self.format_combo_box.get()
         if item.startswith(("http", "www", "youtube")):
-            yt_obj = YouTube(item)
-            yt_videos.append((yt_obj, 0 if mode == "Video" else 1))
-            self.listb.insert('end', yt_obj.title + "  |  (" + mode +")")
-            self.link_entry.delete(0, 'end') 
+            if self.playlist_mode.get() == 0:
+                yt_obj = YouTube(item)
+                yt_videos.append((yt_obj, 0 if mode == "Video" else 1))
+                self.listb.insert('end', yt_obj.title + "  |  (" + mode +")")
+                self.link_entry.delete(0, 'end')
+            else:
+                if not "&list=" in item:
+                    self.dbg_console.insert(tk.END, "Video is not part of a playlist!", "red_tag")
+                else:
+                    playlist = Playlist(item)
+                    for i in playlist.videos:
+                        yt_videos.append((i, 0 if mode == "Video" else 1))
+                        self.listb.insert('end', i.title + "  |  (" + mode +")")
+                    self.link_entry.delete(0, 'end')
+
+
 
     def clean_filename(self, filename):
         invalid_chars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
@@ -254,12 +294,10 @@ if __name__ == "__main__":
     _default_clients["ANDROID_CREATOR"]["context"]["client"]["clientVersion"] = '23.30.100'     # choosing newer versions prevents a bug i think
     _default_clients["ANDROID_CREATOR"]["context"]["client"]["androidSdkVersion"] = 33
     _default_clients["ANDROID_MUSIC"] = _default_clients["ANDROID_CREATOR"]  #  with android fix age restriction loop bug but then we have 403 error | with android creator we have less streams...
-
     # Backend variables
     yt_videos = []
     unique_folder = ""
     folder_created = False
-
     # Start app
     app = YouTubeDownloaderApp()
     app.mainloop()
@@ -275,7 +313,8 @@ To do:
 - add other formats than mp4 and mp3
 - allow user to choose resolution
 - show debug messages to a textbox in the gui (also because multithreading spams the console)  ✓
-
+- disable new input in some cases to prevent unwanted behavior
+- add button to toggle audio/video mode
 To fix:
 - with the ANDROID_CREATOR client, in some cases, there is no 1080p stream, even though there should be one,
     using the ADROID client could fix this. it also fixes a loop bug with age restricted videos, but leads to 403 errors

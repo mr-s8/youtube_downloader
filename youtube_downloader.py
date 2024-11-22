@@ -1,8 +1,6 @@
 import tkinter as tk
 import customtkinter as ctk
 import os
-import shutil
-import subprocess
 import time
 from yt_dlp import YoutubeDL
 import threading
@@ -171,7 +169,7 @@ class YouTubeDownloaderApp(ctk.CTk):
             playlist = False
             prefix = ""
             if "list" in item:
-                prefix = "(P)"
+                prefix = "Playlist containing: "
                 playlist = True
             
             yt_videos.append({"link": item, "options": options, "title": title, "playlist": playlist})
@@ -183,11 +181,13 @@ class YouTubeDownloaderApp(ctk.CTk):
         ydl_opts = {
             'quiet': True,  # Keine Ausgaben im Terminal
             'simulate': True,  # Kein Download, nur Metadaten abrufen
+            'noplaylist': True
         }
 
         with YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(video_url, download=False)  # Metadaten extrahieren
             return info_dict.get('title', 'Unbekannter Titel')  # Titel abrufen
+
             
 
     def clean_filename(self, filename):
@@ -330,8 +330,11 @@ To fix:
 ----
 
 
--delete video from list after download
+-delete video from list after download  # sollte passen
 -dont allow deleting from list while downloading
 -toggle audio video # sollte passen
--fix freeze when add to list
+-fix freeze when add to list, use requests;
+- limit length of list text and show progress instead
+- show playlist name instead of video name
+- zwei toggle buttons für playlist optionen
 """

@@ -1,2 +1,2 @@
 customtkinter==5.2.1
-pytube==15.0.0
+yt_dlp==2024.11.18

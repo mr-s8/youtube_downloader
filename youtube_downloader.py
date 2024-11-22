@@ -1,13 +1,10 @@
 import tkinter as tk
 import customtkinter as ctk
 import os
-import pytube
 import shutil
 import subprocess
 import time
-from pytube import YouTube
-from pytube import Playlist
-from pytube.innertube import _default_clients
+from yt_dlp import YoutubeDL
 import threading
 
 
@@ -72,11 +69,14 @@ class YouTubeDownloaderApp(ctk.CTk):
         toggle_audio_video_button = ctk.CTkButton(frame3, text="Toggle Audio/Video", command=self.toggle_video_audio)
         toggle_audio_video_button.pack(side=tk.TOP, pady=5)
 
+        """
         # Toggle playlist mode
         self.playlist_mode = ctk.IntVar(value= 0)
         playlist_mode_swith = (ctk.CTkSwitch(master= frame3, text= "Playlist Mode", variable=self.playlist_mode, onvalue=1, offvalue=0))
         playlist_mode_swith.pack(side=tk.BOTTOM)
-
+        """
+        
+        
         # Download all button
         dl_button = ctk.CTkButton(master = self, text="Download all", command= lambda: threading.Thread(target= self.download_all).start())    # run download_all function in a different thread, 
         dl_button.pack(pady = 10)                                                                                                                   #so the gui doesnt freeze when we wait for the downloads to finish
@@ -111,44 +111,84 @@ class YouTubeDownloaderApp(ctk.CTk):
         if not selected_index:
             return
         selected_index = selected_index[0]
-        yt_tuple = yt_videos[selected_index]
+        yt_video = yt_videos[selected_index]
         listb_text = self.listb.get(selected_index)
-        if yt_tuple[1] == 0:  # Video mode detected
-            yt_videos[selected_index] = (yt_tuple[0],1)
+        if "video" in yt_video["options"]["format"]:  # Video mode detected
+            yt_video["options"] = {
+                    'quiet': False,  # Fortschrittsinformationen anzeigen
+                    'format': 'bestaudio/best',  # Nur die beste Audioqualität auswählen
+                    'postprocessors': [{
+                        'key': 'FFmpegExtractAudio',  # Extrahiert das Audio
+                        'preferredcodec': 'mp3',  # Ziel-Audioformat, z. B. mp3, m4a
+                        'preferredquality': '192',  # Audioqualität (192 kbps für MP3)
+                    }],
+                }
             listb_text = listb_text[:-6] + "Audio)"
             self.listb.delete(selected_index)
             self.listb.insert(selected_index, listb_text)
         else:                 #Audio mode detected
-            yt_videos[selected_index] = (yt_tuple[0],0)
+            yt_video["options"] = {
+                        'quiet': False,  # Fortschrittsinformationen anzeigen
+                        'format': 'bestvideo+bestaudio/best',  # Beste Video- und Audioqualität
+                    }
             listb_text = listb_text[:-6] + "Video)"
             self.listb.delete(selected_index)
             self.listb.insert(selected_index, listb_text)
             
 
-    def add_item(self):
+    def add_item(self):         ## aktuell hier am arbeiten
         """
-        adds an the youtube video from the entry to the listbox,
+        adds the youtube video from the entry to the listbox,
         and the youtube object with the mode to the internal list
         """
         item = self.link_entry.get()
         mode = self.format_combo_box.get()
+        print("mode")
+        print(mode)
+        
         if item.startswith(("http", "www", "youtube")):
-            if self.playlist_mode.get() == 0:
-                yt_obj = YouTube(item)
-                yt_videos.append((yt_obj, 0 if mode == "Video" else 1))
-                self.listb.insert('end', yt_obj.title + "  |  (" + mode +")")
-                self.link_entry.delete(0, 'end')
+            title = self.get_video_title(item)
+            if mode == "Video":
+                options = {
+                        'quiet': False,  # Fortschrittsinformationen anzeigen
+                        'format': 'bestvideo+bestaudio/best',  # Beste Video- und Audioqualität
+                    }
             else:
-                if not "&list=" in item:
-                    self.dbg_console.insert(tk.END, "Video is not part of a playlist!", "red_tag")
-                else:
-                    playlist = Playlist(item)
-                    for i in playlist.videos:
-                        yt_videos.append((i, 0 if mode == "Video" else 1))
-                        self.listb.insert('end', i.title + "  |  (" + mode +")")
-                    self.link_entry.delete(0, 'end')
+                options = {
+                    'quiet': False,  # Fortschrittsinformationen anzeigen
+                    'format': 'bestaudio/best',  # Nur die beste Audioqualität auswählen
+                    'postprocessors': [{
+                        'key': 'FFmpegExtractAudio',  # Extrahiert das Audio
+                        'preferredcodec': 'mp3',  # Ziel-Audioformat, z. B. mp3, m4a
+                        'preferredquality': '192',  # Audioqualität (192 kbps für MP3)
+                    }],
+                }
 
+            
+            
+            # if video is part of a playlist (list parameter in url),
+            # the whole playlist is going to get downloaded
+            playlist = False
+            prefix = ""
+            if "list" in item:
+                prefix = "(P)"
+                playlist = True
+            
+            yt_videos.append({"link": item, "options": options, "title": title, "playlist": playlist})
+            
+            self.listb.insert('end', prefix + title + "  |  (" + mode +")")  
+            self.link_entry.delete(0, 'end')
 
+    def get_video_title(self, video_url):
+        ydl_opts = {
+            'quiet': True,  # Keine Ausgaben im Terminal
+            'simulate': True,  # Kein Download, nur Metadaten abrufen
+        }
+
+        with YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(video_url, download=False)  # Metadaten extrahieren
+            return info_dict.get('title', 'Unbekannter Titel')  # Titel abrufen
+            
 
     def clean_filename(self, filename):
         invalid_chars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
@@ -159,83 +199,53 @@ class YouTubeDownloaderApp(ctk.CTk):
         return filename 
     
     def download(self, video_entry, output):
+        
+        yt_link = video_entry["link"]
+        yt_options = video_entry["options"]
+        yt_title = video_entry["title"]
+        yt_playlist = video_entry["playlist"]
+        
+        if yt_playlist:
+            outtmpl = f'{output}/%(playlist)s/%(title)s.%(ext)s'  # Ordner für Playlist
+        else:
+            outtmpl = f'{output}/%(title)s.%(ext)s'  # Nur Hauptordner
+            
+        yt_options["outtmpl"] = outtmpl
 
-        """
-        Downloads the video from the YouTube object in the video_entry tuple.
-        If the highest resolution available is not above 720p, we can use a progressive
-        stream, which conatins both audio and video, to download the video.
-        If not, we first download the video and then call the function again to download the audio.
-        We then merge the two together with ffmpeg.
-        """
-
-        yt_obj = video_entry[0]
-        title = self.clean_filename(yt_obj.title) # eliminate invalid chars in filename
-        mode = video_entry[1]
-        mode_name = "video" if mode == 0 else "audio"
-        need_to_merge_audio = False
-
-        self.dbg_console.insert(tk.END, f"Downloading {mode_name} of: '{title}'...\n")
+        mode_name = "video" if "video" in yt_options["format"] else "audio"
+        
+    
+        self.dbg_console.insert(tk.END, f"Downloading {mode_name} of: '{yt_title}' {" as part of a Playlist" if yt_playlist else ""}...\n")
 
         try:
-            streams = yt_obj.streams
-            if mode == 0:               # if we want to download video
-                if len(streams.filter(progressive= False, res= "1080p", file_extension= "mp4")) == 0: # if there is no better stream than 720p, use the progressive stream
-                    stream = streams.get_highest_resolution()
-                else:
-                    stream = streams.filter(progressive= False, res="1080p", file_extension= "mp4").first() # if there is a full hd stream available, get the video only stream
-                    need_to_merge_audio = True                                                              # and later get the audio
-                ending = ".mp4"
-            else:                       # if we want to download audio
-                stream = streams.filter(only_audio=True).first()
-                ending = ".mp3"
+            
+            with YoutubeDL(yt_options) as ydl:
+                ydl.download([yt_link])
+            
 
-            stream.download(output_path= output, filename= (title+ending))
-            video_location = output+"/"+title+ending    
-            if need_to_merge_audio:     # Get audio if needed
+            self.dbg_console.insert(tk.END, f"Download of: '{yt_title}' {mode_name} {"Playlist" if yt_playlist else ""} complete!\n", "green_tag")
 
-                #print(f"Getting audio for {title}, to merge with high res video.")
-                self.dbg_console.insert(tk.END, f"Getting audio for: '{title}', to merge with high res video.\n")
-
-                tmp_folder = "temp_" + str(time.time()) 
-                os.makedirs(tmp_folder)
-                mp3_location = self.download((yt_obj, 1), "./" + tmp_folder)
-                final_path = "./"+tmp_folder + "/" +title + ending
-                self.merge_audio_video(video_location, mp3_location, final_path)   # old version of merging with moviepy    end_path = "./"+tmp_folder and use video_location returned by mergefunction
-                os.remove(video_location)
-                shutil.move(final_path, output)
-                time.sleep(2)
-                shutil.rmtree(tmp_folder)   
-
-            self.dbg_console.insert(tk.END, f"Download of: '{title}' {mode_name} complete!\n", "green_tag")
-
-            return video_location
-
-        except pytube.exceptions.AgeRestrictedError:  # if video is age restricted, use oauth
-
-            self.dbg_console.insert(tk.END, f"{title} age restricted! Trying again with OAuth! Check console, you might need to authenticate\n", "red_tag")
-
-            new_yt_obj = YouTube(yt_obj.watch_url, use_oauth=True, allow_oauth_cache=True)
-            return self.download((new_yt_obj, mode), output)
+            return 1
 
         except Exception as e:
             self.dbg_console.insert(tk.END, f"\nAn error occurred: {e}\n")
 
             return -1  
          
-    def merge_audio_video(self, video_file, audio_file, output_file):
-        """
-        merge the audio and video and save it to the ouput_file location
-        """
-        command = ['ffmpeg', '-i', audio_file, '-i', video_file, '-c', 'copy', output_file]
-        subprocess.run(command) 
 
     def download_all(self):
+        print("download all called")
+        
         """
         downloads all videos in the internal list. downloads three videos at the same time, if the
         multithreading code is not commented out
         """
+        global yt_videos
         global folder_created
         global unique_folder
+        
+        print(yt_videos)
+
         if not folder_created:  # one folder per session; problem if folder is deleted while running
             unique_folder = str(time.time()) 
             os.makedirs(unique_folder)  
@@ -283,17 +293,14 @@ class YouTubeDownloaderApp(ctk.CTk):
                     download_thread2.start()
                     download_thread1.join()
                     download_thread2.join()
-        ########
         
+        self.listb.delete(0, tk.END)
+        yt_videos = []
+
 
 
 
 if __name__ == "__main__":
-    
-    # Configuration changes
-    _default_clients["ANDROID_CREATOR"]["context"]["client"]["clientVersion"] = '23.30.100'     # choosing newer versions prevents a bug i think
-    _default_clients["ANDROID_CREATOR"]["context"]["client"]["androidSdkVersion"] = 33
-    _default_clients["ANDROID_MUSIC"] = _default_clients["ANDROID_CREATOR"]  #  with android fix age restriction loop bug but then we have 403 error | with android creator we have less streams...
     # Backend variables
     yt_videos = []
     unique_folder = ""
@@ -320,4 +327,11 @@ To fix:
     using the ADROID client could fix this. it also fixes a loop bug with age restricted videos, but leads to 403 errors
     very often; how can I eliminate all these bugs?
 
+----
+
+
+-delete video from list after download
+-dont allow deleting from list while downloading
+-toggle audio video # sollte passen
+-fix freeze when add to list
 """
